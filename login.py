@@ -1,100 +1,75 @@
+"""
+Asistencia- Alumnos
+Este programa proporciona un sistema de inicio de sesión para los jefes de grupo utlizando streamlit y una base de datos en supabase.
+
+Módulos:
+-steamlit: interfaz de usuario
+-supabase: almacenamiento de datos.
+
+uso: 
+main.py
+"""
 import streamlit as st
-import hashlib
-import sqlite3
-from datetime import datetime
-#login sacado de github(lo dejo así o lo hago por mi propia cuenta?)
+from supabase import create_client, Client
+import subprocess
+import os
 
-# Configuración inicial de la página
-st.set_page_config(page_title="Sistema de Login", layout="centered")
+url:str = "https://rrgihgkscefedjgukiux.supabase.co"
+key:str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyZ2loZ2tzY2VmZWRqZ3VraXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk4NzA1NzUsImV4cCI6MjA0NTQ0NjU3NX0.ihjBat8S9dPLykzGOfvrKNtHwvpfEIKU9tx_IK35w8c"
+supabase:Client = create_client(url, key)
 
-# Inicializar variables de estado en sesión
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
+asistencias = st.Page("main.py", title="Asistencias")
 
-def init_db():
-    """Inicializar la base de datos SQLite"""
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (username TEXT PRIMARY KEY,
-                  password TEXT NOT NULL,
-                  created_date TEXT)''')
-    conn.commit()
-    conn.close()
 
-def hash_password(password):
-    """Encriptar contraseña usando SHA-256"""
-    return hashlib.sha256(str.encode(password)).hexdigest()
-
-def add_user(username, password):
-    """Registrar nuevo usuario en la base de datos"""
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    hashed_pwd = hash_password(password)
+def login(username, password):
+    """Verifica las credenciales del alumno
+       Args:
+            username: Nombre de usuario del alumno.
+            password: Contraseña del alumno.
+        Return:
+            bool: resultado True si las credenciales son correctas. False en caso contrario.
+    """
     try:
-        c.execute("INSERT INTO users VALUES (?,?,?)", 
-                 (username, hashed_pwd, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-        conn.commit()
-        return True
-    except sqlite3.IntegrityError:
+        response = supabase.table('usuarioalumno').select('*').eq('Usuario', username).execute()
+        
+        if response.data:
+            alumno = response.data[0]
+            if alumno['Contrasenia'] == password:
+                st.session_state.logged_in = True
+                st.session_state.alumno_data = alumno
+                return True
         return False
-    finally:
-        conn.close()
-
-def login_user(username, password):
-    """Verificar credenciales de usuario"""
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    hashed_pwd = hash_password(password)
-    c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, hashed_pwd))
-    result = c.fetchone()
-    conn.close()
-    return result is not None
-
+    except Exception as e:
+        st.error(f"Error al intentar iniciar sesión: {str(e)}")
+        return False
+ 
 def main():
-    init_db()
-    
-    if not st.session_state.logged_in:
-        st.title("Sistema de Login")
+    """
+    funcion principal que maneja la aplicación
+    """
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+
+    if st.session_state.logged_in:
+        #Efrain: No viable, es imposible trabajar con los datos del que se logea de esta forma
+        #subprocess.Popen(["streamlit", "run", "main.py"])
+        # Redirigir a main.py
+        pg = st.navigation([asistencias])
+        pg.run()
+    else:
+        st.title("Sistema de Asistencia - Alumnos")
         
-        # Crear pestañas para login y registro
-        tab1, tab2 = st.tabs(["Login", "Registro"])
-        
-        with tab1:
-            st.header("Login")
-            login_username = st.text_input("Usuario", key="login_username")
-            login_password = st.text_input("Contraseña", type="password", key="login_password")
+        with st.form("login_form"):
+            username = st.text_input("Usuario")
+            password = st.text_input("Contraseña", type="password")
+            submit = st.form_submit_button("Iniciar Sesión")
             
-            if st.button("Iniciar Sesión"):
-                if login_user(login_username, login_password):
-                    st.session_state.logged_in = True
-                    st.success("¡Login exitoso!")
-                    st.experimental_rerun()
+            if submit:
+                if login(username, password):
+                    st.success("¡Inicio de sesión exitoso!")
+                    st.rerun()
                 else:
                     st.error("Usuario o contraseña incorrectos")
-        
-        with tab2:
-            st.header("Registro de Usuario")
-            new_username = st.text_input("Usuario", key="new_username")
-            new_password = st.text_input("Contraseña", type="password", key="new_password")
-            confirm_password = st.text_input("Confirmar Contraseña", type="password")
-            
-            if st.button("Registrarse"):
-                if new_password != confirm_password:
-                    st.error("Las contraseñas no coinciden")
-                elif len(new_password) < 3:
-                    st.error("La contraseña debe tener al menos 6 caracteres")
-                else:
-                    if add_user(new_username, new_password):
-                        st.success("Usuario registrado exitosamente!")
-                    else:
-                        st.error("El nombre de usuario ya existe")
-    
-    else:
-        st.title("¡Bienvenido!")
-        if st.button("Cerrar Sesión"):
-            st.session_state.logged_in = False
-            st.experimental_rerun()
 
 if __name__ == "__main__":
-    main()
+    main()  
