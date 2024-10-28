@@ -460,7 +460,7 @@ def mostrar_estadisticas():
     else:
         mostrar_reporte(df, 'Carrera', 'Estadísticas por Carrera')
 st.sidebar.title("Navegación")
-opcion = st.sidebar.selectbox("Selecciona una página", ["Asiste filtradosncia", "Estadísticas"])
+opcion = st.sidebar.selectbox("Selecciona una página", ["Asistencia", "Estadísticas"])
 
 if opcion == "Asistencia":
     selectProfe()
