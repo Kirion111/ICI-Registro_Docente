@@ -39,8 +39,6 @@ generalData = []
 daTable = []
 
 #Funcion para guardar los datos del alumno logeado
-#no pongan tantooos
-
 def initialize_alumno_data():
     """
     Funcion creada con el fin de guardad los datos del alumno logeado
