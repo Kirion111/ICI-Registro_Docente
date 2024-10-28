@@ -12,6 +12,7 @@ Funciones:
 main():
     Funcion principal que grestiona el flujo del sistema
 """
+import supabase
 import streamlit as st
 from supabase import create_client, Client
 import datetime
