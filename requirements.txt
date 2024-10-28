@@ -1,1 +1,1 @@
-supabase==0.24.09
+supabase
